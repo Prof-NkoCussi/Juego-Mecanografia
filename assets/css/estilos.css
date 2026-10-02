@@ -267,6 +267,9 @@ main:has(.vista-progreso:not([hidden])) { padding-top: 14px; padding-bottom: 12p
   color: var(--texto);
   white-space: pre-wrap;
 }
+.texto--largo { font-size: 1.6rem; }
+/* Modo libre: se ven 2 renglones y el texto sube a medida que se escribe */
+.texto--libre { position: relative; overflow: hidden; padding-bottom: 0; height: calc(1.9rem * 1.65 * 2 + 6px); }
 .texto:focus-visible { outline-offset: 2px; border-radius: 14px; }
 .texto .palabra { display: inline-block; white-space: nowrap; }
 .texto .letra { border-radius: 4px; }

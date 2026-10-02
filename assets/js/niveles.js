@@ -53,20 +53,76 @@ const PARTE1 = [
 
 // Parte 2 · Palabras por tema. Cada tema tiene estos 3 niveles, en orden.
 const NIVELES_TEMA = [
-  { numero: 1, nombre: 'Palabras cortas', cantidad: 15, velocidad: 'p2Cortas' },
-  { numero: 2, nombre: 'Palabras largas', cantidad: 12, velocidad: 'p2Largas' },
-  { numero: 3, nombre: 'Frases',          cantidad: 3,  velocidad: 'p2Frases' }
+  { numero: 1, nombre: 'Palabras cortas', lista: 'cortas', cantidad: 15, velocidad: 'p2Cortas' },
+  { numero: 2, nombre: 'Palabras largas', lista: 'largas', cantidad: 12, velocidad: 'p2Largas' },
+  { numero: 3, nombre: 'Frases',          lista: 'frases', cantidad: 3,  velocidad: 'p2Frases' }
 ];
 
-// Las listas de palabras y frases se agregan en la etapa 5.
+// Listas de cada tema. Todo en minúscula, sin ñ ni tildes.
+// En cada intento salen palabras y frases al azar de estas listas.
 const TEMAS = [
-  { id: 'computacion', nombre: 'Computación' },
-  { id: 'futbol',      nombre: 'Equipos de fútbol' },
-  { id: 'ropa',        nombre: 'Marcas de ropa' },
-  { id: 'electro',     nombre: 'Electrodomésticos' }
+  {
+    id: 'computacion', nombre: 'Computación',
+    cortas: ['mouse', 'cable', 'disco', 'red', 'wifi', 'chip', 'dato', 'tecla', 'panel', 'clic', 'byte', 'bit', 'web', 'pixel', 'virus',
+      'mail', 'nube', 'zoom', 'link', 'chat', 'login', 'placa', 'video', 'audio', 'texto', 'celda', 'fila', 'tabla', 'clave', 'copia'],
+    largas: ['teclado', 'monitor', 'pantalla', 'impresora', 'parlante', 'procesador', 'memoria', 'programa', 'archivo', 'carpeta',
+      'internet', 'navegador', 'servidor', 'software', 'hardware', 'notebook', 'escritorio', 'documento', 'planilla', 'usuario',
+      'descarga', 'ventana', 'sistema', 'algoritmo', 'buscador', 'auricular', 'plantilla', 'diapositiva', 'computadora', 'dispositivo'],
+    frases: [
+      'el teclado, el mouse y el monitor se conectan a la computadora.',
+      'guardo el archivo, cierro el programa y apago la notebook.',
+      'la impresora no tiene papel, hay que cargar hojas nuevas.',
+      'abro el navegador, escribo la consulta y presiono enter.',
+      'tengo 3 carpetas, 12 documentos y 2 planillas en el disco.'
+    ]
+  },
+  {
+    id: 'futbol', nombre: 'Equipos de fútbol',
+    cortas: ['boca', 'river', 'racing', 'tigre', 'ferro', 'milan', 'inter', 'roma', 'ajax', 'porto', 'betis', 'santos', 'napoli',
+      'chelsea', 'sevilla'],
+    largas: ['independiente', 'estudiantes', 'gimnasia', 'platense', 'banfield', 'talleres', 'belgrano', 'quilmes', 'sarmiento',
+      'instituto', 'chacarita', 'barcelona', 'liverpool', 'juventus', 'flamengo', 'palmeiras', 'valencia', 'arsenal', 'san lorenzo',
+      'real madrid', 'godoy cruz', 'rosario central'],
+    frases: [
+      'boca, river y racing juegan el domingo.',
+      'el partido termina 2 a 1, gana independiente.',
+      'talleres, belgrano e instituto son de la misma provincia.',
+      'san lorenzo hace 3 goles, estudiantes hace 2.',
+      'milan, inter y juventus juegan en italia.'
+    ]
+  },
+  {
+    id: 'ropa', nombre: 'Marcas de ropa',
+    cortas: ['nike', 'puma', 'fila', 'vans', 'zara', 'lee', 'gap', 'reef', 'joma', 'kappa', 'umbro', 'rusty', 'asics', 'topper',
+      'adidas', 'reebok', 'jordan', 'hummel'],
+    largas: ['converse', 'lacoste', 'wrangler', 'columbia', 'montagne', 'champion', 'billabong', 'quiksilver', 'timberland',
+      'kevingston', 'diadora', 'penalty', 'new balance', 'rip curl', 'the north face', 'under armour', 'calvin klein', 'john foos'],
+    frases: [
+      'tengo zapatillas topper, un buzo puma y una gorra vans.',
+      'la campera cuesta 90, el buzo cuesta 45.',
+      'compro 2 remeras, 1 gorra y 3 pares de medias.',
+      'nike, adidas y puma hacen ropa de deporte.',
+      'el local abre a las 9, cierra a las 20.'
+    ]
+  },
+  {
+    id: 'electro', nombre: 'Electrodomésticos',
+    cortas: ['horno', 'radio', 'pava', 'anafe', 'estufa', 'cocina', 'plancha', 'freezer', 'secador', 'balanza', 'consola', 'tele',
+      'grill', 'timbre', 'parlante'],
+    largas: ['heladera', 'lavarropas', 'microondas', 'licuadora', 'batidora', 'aspiradora', 'ventilador', 'televisor', 'cafetera',
+      'secarropas', 'lavavajillas', 'calefactor', 'termotanque', 'extractor', 'procesadora', 'freidora', 'exprimidor', 'caloventor',
+      'tostadora', 'purificador', 'aire acondicionado'],
+    frases: [
+      'la heladera, el horno y el microondas van en la cocina.',
+      'el lavarropas tarda 45 minutos, el secarropas tarda 30.',
+      'enchufo la pava, preparo el mate y prendo la radio.',
+      'el ventilador tiene 3 velocidades, la estufa tiene 2.',
+      'apago el televisor, desenchufo la plancha y cierro la puerta.'
+    ]
+  }
 ];
 
-// Modo libre: palabras al azar del tema hasta que se cumple el tiempo.
+// Modo libre: palabras al azar del tema (cortas y largas) hasta que se cumple el tiempo.
 const MODO_LIBRE = { segundos: 60 };
 
 // Teclado en pantalla: qué dedo va en cada tecla.

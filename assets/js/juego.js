@@ -142,13 +142,58 @@
       parte: 'Parte 2 · ' + tema.nombre,
       nombre: n.nombre,
       velocidad: n.velocidad,
+      generar: () => alAzar(tema[n.lista], n.cantidad).join(' '),
       ultimoDeTema: indice === NIVELES_TEMA.length - 1,
       siguiente: () => (indice + 1 < NIVELES_TEMA.length ? nivelTema(tema, indice + 1) : null)
     };
   }
 
   function nivelLibre(tema) {
-    return { id: 'libre-' + tema.id, tema: tema.id, parte: 'Modo libre', nombre: tema.nombre, libre: true, siguiente: () => null };
+    return {
+      id: 'libre-' + tema.id,
+      tema: tema.id,
+      parte: 'Modo libre',
+      nombre: tema.nombre,
+      libre: true,
+      generar: () => palabrasLibres(tema),
+      siguiente: () => null
+    };
+  }
+
+  // Elige 'cantidad' elementos distintos al azar.
+  function alAzar(lista, cantidad) {
+    const copia = lista.slice();
+    for (let i = copia.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [copia[i], copia[j]] = [copia[j], copia[i]];
+    }
+    return copia.slice(0, cantidad);
+  }
+
+  // Modo libre: más palabras de las que se pueden escribir en un minuto, sin repetir una al lado de la otra.
+  function palabrasLibres(tema) {
+    const todas = tema.cortas.concat(tema.largas);
+    const salida = [];
+    while (salida.length < 150) {
+      for (const p of alAzar(todas, todas.length)) {
+        if (p !== salida[salida.length - 1]) salida.push(p);
+      }
+    }
+    return salida.join(' ');
+  }
+
+  // Récord del modo libre: se queda el de más PPM (y, si empatan, el de más precisión).
+  function esMejorLibre(nuevo, viejo) {
+    return !viejo || nuevo.ppm > viejo.ppm || (nuevo.ppm === viejo.ppm && nuevo.precision > viejo.precision);
+  }
+
+  function guardarRecordLibre(tema, resultado) {
+    const anterior = alumno.libre[tema] || null;
+    if (esMejorLibre(resultado, anterior)) {
+      alumno.libre[tema] = resultado;
+      guardarAlumno();
+    }
+    return anterior;
   }
 
   // Guarda el resultado si es el mejor del alumno en ese nivel. Devuelve el mejor anterior.
@@ -425,7 +470,7 @@
   }
 
   // ---------- Partida ----------
-  // nivel: { id, parte, nombre, texto, velocidad }
+  // nivel: { id, parte, nombre, texto o generar(), velocidad, libre }
   let partida = null;
 
   function abrirNivel(nivel) {
@@ -433,10 +478,15 @@
     $('juego-parte').textContent = nivel.parte;
     $('titulo-juego').textContent = nivel.nombre;
 
-    const hayTexto = Boolean(nivel.texto);
+    const texto = nivel.generar ? nivel.generar() : nivel.texto;
+    const hayTexto = Boolean(texto);
     $('juego-pendiente').hidden = hayTexto;
     $('juego-area').hidden = !hayTexto;
-    $('dato-tiempo').textContent = '0:00';
+    $('dato-tiempo-etiqueta').textContent = nivel.libre ? 'Queda' : 'Tiempo';
+    $('dato-tiempo').textContent = nivel.libre ? formatoTiempo(MODO_LIBRE.segundos * 1000) : '0:00';
+    $('texto').classList.toggle('texto--libre', Boolean(nivel.libre));
+    $('texto').classList.toggle('texto--largo', !nivel.libre && hayTexto && texto.length > 160);
+    $('texto').scrollTop = 0;
     $('dato-errores').textContent = '0';
     $('aviso-mayus').hidden = true;
     $('juego-consigna').textContent = 'Empezá cuando quieras: el tiempo arranca con la primera tecla.';
@@ -449,7 +499,8 @@
 
     partida = {
       nivel,
-      texto: nivel.texto,
+      texto,
+      libre: Boolean(nivel.libre),
       pos: 0,
       presionadas: 0,
       correctas: 0,
@@ -488,14 +539,30 @@
   function marcarActual() {
     const letra = partida.letras[partida.pos];
     if (letra) letra.classList.add('letra--actual');
+    // En el modo libre el texto es largo: el renglón que se escribe queda siempre arriba.
+    if (letra && partida.libre) {
+      const texto = $('texto');
+      const estilo = getComputedStyle(texto);
+      const renglon = parseFloat(estilo.lineHeight);
+      const arriba = parseFloat(estilo.paddingTop);
+      texto.scrollTop = Math.floor((letra.offsetTop - arriba) / renglon) * renglon + arriba;
+    }
     indicarTecla(partida.pos < partida.texto.length ? partida.texto[partida.pos] : null);
   }
 
   function arrancarCronometro() {
     partida.inicio = performance.now();
+    const limite = MODO_LIBRE.segundos * 1000;
     partida.intervalo = setInterval(() => {
-      $('dato-tiempo').textContent = formatoTiempo(performance.now() - partida.inicio);
-    }, 250);
+      const ms = performance.now() - partida.inicio;
+      if (!partida.libre) {
+        $('dato-tiempo').textContent = formatoTiempo(ms);
+      } else if (ms >= limite) {
+        terminarPartida();
+      } else {
+        $('dato-tiempo').textContent = formatoTiempo(limite - ms + 999);
+      }
+    }, 100);
   }
 
   function terminarCronometro() {
@@ -539,14 +606,24 @@
   }
 
   function terminarPartida() {
-    const ms = performance.now() - partida.inicio;
+    let ms = performance.now() - partida.inicio;
+    if (partida.libre) ms = Math.min(ms, MODO_LIBRE.segundos * 1000);
     terminarCronometro();
     indicarTecla(null);
 
+    // Caracteres correctos: los que ya se escribieron (en el modo libre queda texto sin escribir).
     const minutos = ms / 60000;
-    const ppm = Math.round((partida.texto.length / 5) / minutos);
-    const precision = Math.floor((partida.correctas / partida.presionadas) * 100);
+    const ppm = Math.round((partida.pos / 5) / minutos);
+    const precision = partida.presionadas ? Math.floor((partida.correctas / partida.presionadas) * 100) : 0;
     const fecha = new Date();
+
+    if (partida.libre) {
+      const resultado = { ppm, precision, ms: Math.round(ms), fecha: fecha.toISOString() };
+      const anterior = guardarRecordLibre(partida.nivel.tema, resultado);
+      mostrarResultado(partida.nivel, resultado, anterior, fecha);
+      return;
+    }
+
     const resultado = {
       estrellas: calcularEstrellas(ppm, precision, partida.nivel.velocidad),
       ppm,
@@ -584,26 +661,33 @@
     return mensaje;
   }
 
+  function mensajeLibre(r, anterior) {
+    if (!anterior) return 'Este es tu primer récord en este tema.';
+    if (esMejorLibre(r, anterior)) return '¡Nuevo récord! Antes tenías ' + anterior.ppm + ' PPM.';
+    return 'Tu récord en este tema es de ' + anterior.ppm + ' PPM. ¡Probá superarlo!';
+  }
+
   function mostrarResultado(nivel, r, anterior, fecha) {
     ultimoNivel = nivel;
-    nivelSiguiente = r.estrellas >= ESTRELLAS_PARA_AVANZAR ? nivel.siguiente() : null;
-    const mensaje = mensajeResultado(nivel, r);
+    const libre = Boolean(nivel.libre);
+    nivelSiguiente = !libre && r.estrellas >= ESTRELLAS_PARA_AVANZAR ? nivel.siguiente() : null;
+    const mensaje = libre ? mensajeLibre(r, anterior) : mensajeResultado(nivel, r);
 
     $('resultado-alumno').textContent = alumno.nombre;
     $('resultado-curso').textContent = alumno.curso;
     $('resultado-fecha').textContent = fechaLarga(fecha);
     $('resultado-parte').textContent = nivel.parte;
     $('titulo-resultado').textContent = nivel.nombre;
-    $('resultado-estrellas').replaceChildren(estrellas(r.estrellas));
+    $('resultado-estrellas').replaceChildren(libre ? '' : estrellas(r.estrellas));
     $('resultado-tiempo').textContent = formatoTiempo(r.ms);
     $('resultado-ppm').textContent = r.ppm + ' PPM';
     $('resultado-precision').textContent = r.precision + ' %';
     $('resultado-mensaje').textContent = mensaje;
-    $('resultado-record').textContent = anterior && esMejor(r, anterior) ? '¡Superaste tu mejor resultado en este nivel!' : '';
+    $('resultado-record').textContent = !libre && anterior && esMejor(r, anterior) ? '¡Superaste tu mejor resultado en este nivel!' : '';
     $('resultado-siguiente').hidden = !nivelSiguiente;
     mostrar('resultado');
     $('resultado-anuncio').textContent =
-      'Nivel terminado. ' + (r.estrellas === 1 ? '1 estrella' : r.estrellas + ' estrellas') +
+      (libre ? 'Se terminó el minuto' : 'Nivel terminado. ' + (r.estrellas === 1 ? '1 estrella' : r.estrellas + ' estrellas')) +
       '. Tiempo: ' + formatoTiempo(r.ms) + '. Velocidad: ' + r.ppm + ' palabras por minuto. Precisión: ' +
       r.precision + ' por ciento. ' + mensaje;
   }
