@@ -17,18 +17,38 @@ const UMBRALES = {
 const ESTRELLAS_PARA_AVANZAR = 2;
 
 // Parte 1 · Aprender las teclas. Primero repeticiones de teclas, después palabras reales.
-// Los textos de los niveles 2 a 6 se agregan en la etapa 4.
+// Cada texto usa solo las teclas de su nivel y de los anteriores.
 const PARTE1 = [
   {
     id: 'p1-1', numero: 1, nombre: 'Fila guía', teclas: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'], velocidad: 'p1Inicial',
     texto: 'fff jjj fff jjj ddd kkk ddd kkk sss lll sss lll aaa aaa fj dk sl fj dk sl ggg hhh fg jh fg jh ' +
            'asdf jkl asdf jkl sala gala hada falda salsa gasa faja alfalfa'
   },
-  { id: 'p1-2', numero: 2, nombre: 'Fila superior',    teclas: ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'], velocidad: 'p1Inicial' },
-  { id: 'p1-3', numero: 3, nombre: 'Fila inferior',    teclas: ['z', 'x', 'c', 'v', 'b', 'n', 'm'], velocidad: 'p1Inicial' },
-  { id: 'p1-4', numero: 4, nombre: 'Todas las letras', descripcion: 'Palabras con cualquier letra', velocidad: 'p1Final' },
-  { id: 'p1-5', numero: 5, nombre: 'Números',          teclas: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'], velocidad: 'p1Final' },
-  { id: 'p1-6', numero: 6, nombre: 'Coma y punto',     teclas: [',', '.'], velocidad: 'p1Final' }
+  {
+    id: 'p1-2', numero: 2, nombre: 'Fila superior', teclas: ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'], velocidad: 'p1Inicial',
+    texto: 'eee iii ede kik rrr uuu frf juj ttt yyy ftf jyj www ooo sws lol qqq ppp aqa lpl ' +
+           'agua sopa piso foto gato queso papel hoja jugo perro puerta fiesta tijera'
+  },
+  {
+    id: 'p1-3', numero: 3, nombre: 'Fila inferior', teclas: ['z', 'x', 'c', 'v', 'b', 'n', 'm'], velocidad: 'p1Inicial',
+    texto: 'ccc vvv dcd fvf bbb nnn fbf jnj mmm jmj xxx zzz sxs aza ' +
+           'cama mano vaca nube boca mesa luz taxi zorro cebra nieve banco nariz examen caballo mochila'
+  },
+  {
+    id: 'p1-4', numero: 4, nombre: 'Todas las letras', descripcion: 'Palabras con cualquier letra', velocidad: 'p1Final',
+    texto: 'casa perro libro amigo escuela clase patio recreo cuaderno regla lapicera taller dibujo ' +
+           'invierno viento kiwi wifi queso yogur zapato familia ciudad'
+  },
+  {
+    id: 'p1-5', numero: 5, nombre: 'Números', teclas: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'], velocidad: 'p1Final',
+    texto: '111 222 333 444 555 666 777 888 999 000 12 34 56 78 90 ' +
+           '1 mesa 2 sillas 3 libros 4 reglas 5 gatos 6 perros 8 patos 10 dedos 12 meses 24 horas 30 alumnos'
+  },
+  {
+    id: 'p1-6', numero: 6, nombre: 'Coma y punto', teclas: [',', '.'], velocidad: 'p1Final',
+    texto: 'k,k l.l k,k l.l uno, dos, tres. hola. el gato duerme, el perro juega. ' +
+           'en invierno nieva mucho en ushuaia. abro la mochila, saco el libro y leo.'
+  }
 ];
 
 // Parte 2 · Palabras por tema. Cada tema tiene estos 3 niveles, en orden.

@@ -439,6 +439,7 @@
     $('dato-tiempo').textContent = '0:00';
     $('dato-errores').textContent = '0';
     $('aviso-mayus').hidden = true;
+    $('juego-consigna').textContent = 'Empezá cuando quieras: el tiempo arranca con la primera tecla.';
 
     if (!hayTexto) {
       partida = null;
