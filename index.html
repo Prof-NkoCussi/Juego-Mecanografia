@@ -26,6 +26,7 @@
       <div class="barra__alumno">
         <span class="barra__nombre" id="barra-nombre"></span>
         <span class="barra__curso" id="barra-curso"></span>
+        <button type="button" class="boton boton--chico boton--secundario" id="ver-progreso">Mi progreso</button>
         <button type="button" class="boton boton--chico boton--secundario" id="cambiar-alumno">Cambiar de alumno</button>
       </div>
     </header>
@@ -124,29 +125,89 @@
         </div>
       </section>
 
-      <!-- RESULTADO (provisorio: se completa en la etapa 3) -->
+      <!-- RESULTADO: es la pantalla que capturan los alumnos -->
       <section id="vista-resultado" class="vista vista-resultado" aria-labelledby="titulo-resultado" hidden>
-        <div class="resultado">
-          <p class="juego__parte" id="resultado-parte"></p>
-          <h1 id="titulo-resultado" class="vista__titulo" tabindex="-1"></h1>
-          <div id="resultado-estrellas" class="resultado__estrellas"></div>
-          <dl class="resultado__datos">
-            <div class="dato"><dt>Tiempo</dt><dd id="resultado-tiempo"></dd></div>
-            <div class="dato"><dt>Velocidad</dt><dd id="resultado-ppm"></dd></div>
-            <div class="dato"><dt>Precisión</dt><dd id="resultado-precision"></dd></div>
-          </dl>
-          <p class="resultado__mensaje" id="resultado-mensaje"></p>
-          <p class="sr-solo" id="resultado-anuncio" role="status"></p>
+        <div class="ficha">
+          <div class="ficha__cabecera">
+            <div>
+              <p class="ficha__alumno" id="resultado-alumno"></p>
+              <p class="ficha__curso">Curso: <span id="resultado-curso"></span></p>
+            </div>
+            <p class="ficha__fecha" id="resultado-fecha"></p>
+          </div>
+          <div class="ficha__cuerpo">
+            <div class="ficha__nivel">
+              <p class="juego__parte" id="resultado-parte"></p>
+              <h1 id="titulo-resultado" class="ficha__titulo" tabindex="-1"></h1>
+              <div id="resultado-estrellas" class="ficha__estrellas"></div>
+            </div>
+            <dl class="ficha__datos">
+              <div class="dato"><dt>Tiempo</dt><dd id="resultado-tiempo"></dd></div>
+              <div class="dato"><dt>Velocidad</dt><dd id="resultado-ppm"></dd></div>
+              <div class="dato"><dt>Precisión</dt><dd id="resultado-precision"></dd></div>
+            </dl>
+          </div>
+          <p class="ficha__mensaje" id="resultado-mensaje"></p>
+          <p class="ficha__record" id="resultado-record"></p>
+        </div>
+        <p class="sr-solo" id="resultado-anuncio" role="status"></p>
+
+        <div class="resultado__pie">
+          <aside class="captura" aria-labelledby="titulo-captura">
+            <h2 id="titulo-captura" class="captura__titulo">Cómo sacar la captura</h2>
+            <ul class="captura__lista">
+              <li><kbd>Windows</kbd> + <kbd>Impr Pant</kbd> guarda la pantalla completa en <strong>Imágenes › Capturas de pantalla</strong>.</li>
+              <li><kbd>Windows</kbd> + <kbd>Shift</kbd> + <kbd>S</kbd> te deja recortar una parte.</li>
+            </ul>
+            <p class="captura__final">Después subí el archivo a Classroom.</p>
+          </aside>
           <div class="resultado__botones">
-            <button type="button" class="boton" id="resultado-reintentar">Reintentar</button>
+            <button type="button" class="boton" id="resultado-siguiente">Siguiente nivel</button>
+            <button type="button" class="boton boton--secundario" id="resultado-reintentar">Reintentar</button>
             <button type="button" class="boton boton--secundario" id="resultado-niveles">Niveles</button>
           </div>
         </div>
       </section>
 
-      <!-- MI PROGRESO (etapa 3) -->
+      <!-- MI PROGRESO -->
       <section id="vista-progreso" class="vista vista-progreso" aria-labelledby="titulo-progreso" hidden>
-        <h1 id="titulo-progreso" class="vista__titulo" tabindex="-1">Mi progreso</h1>
+        <div class="progreso__cabecera">
+          <div>
+            <h1 id="titulo-progreso" class="vista__titulo" tabindex="-1">Mi progreso</h1>
+            <p class="progreso__alumno"><strong id="progreso-alumno"></strong> · Curso: <span id="progreso-curso"></span></p>
+          </div>
+          <div class="progreso__resumen">
+            <p class="progreso__fecha" id="progreso-fecha"></p>
+            <p class="progreso__total">Estrellas: <strong id="progreso-total"></strong></p>
+          </div>
+          <button type="button" class="boton boton--secundario boton--chico" id="progreso-niveles">Volver a niveles <kbd class="atajo">Esc</kbd></button>
+        </div>
+
+        <div class="progreso__grilla">
+          <div class="progreso__col">
+            <section class="tabla-caja" aria-labelledby="tp1">
+              <h2 id="tp1" class="tabla-caja__titulo"><span class="parte__etiqueta">Parte 1</span> Aprender las teclas</h2>
+              <table class="tabla">
+                <thead><tr><th scope="col">Nivel</th><th scope="col">Estrellas</th><th scope="col">PPM</th><th scope="col">Precisión</th><th scope="col">Fecha</th></tr></thead>
+                <tbody id="tabla-p1"></tbody>
+              </table>
+            </section>
+            <section class="tabla-caja" aria-labelledby="tlibre">
+              <h2 id="tlibre" class="tabla-caja__titulo"><span class="parte__etiqueta parte__etiqueta--libre">Modo libre</span> Récords</h2>
+              <table class="tabla">
+                <thead><tr><th scope="col">Tema</th><th scope="col">Récord</th><th scope="col">Precisión</th><th scope="col">Fecha</th></tr></thead>
+                <tbody id="tabla-libre"></tbody>
+              </table>
+            </section>
+          </div>
+          <section class="tabla-caja" aria-labelledby="tp2">
+            <h2 id="tp2" class="tabla-caja__titulo"><span class="parte__etiqueta">Parte 2</span> Palabras por tema</h2>
+            <table class="tabla">
+              <thead><tr><th scope="col">Tema</th><th scope="col">Nivel</th><th scope="col">Estrellas</th><th scope="col">PPM</th><th scope="col">Precisión</th><th scope="col">Fecha</th></tr></thead>
+              <tbody id="tabla-p2"></tbody>
+            </table>
+          </section>
+        </div>
       </section>
 
     </main>

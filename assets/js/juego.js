@@ -54,13 +54,20 @@
     const guardado = almacen.leer('alumno:' + clave) || {};
     alumno = {
       clave,
-      nombre,
+      nombre: elegirNombre(nombre, guardado.nombre),
       curso,
       niveles: guardado.niveles || {},
       libre: guardado.libre || {}
     };
     guardarAlumno();
     almacen.guardar('actual', clave);
+  }
+
+  // Si vuelve a anotarse sin mayúsculas o sin tildes, se queda el nombre mejor escrito.
+  function elegirNombre(nuevo, anterior) {
+    if (!anterior) return nuevo;
+    const marcas = (t) => (t.match(/[^a-zs]/g) || []).length;
+    return marcas(nuevo) >= marcas(anterior) ? nuevo : anterior;
   }
 
   function guardarAlumno() {
@@ -112,6 +119,63 @@
   function abiertoTema(tema, indice) {
     if (!parte1Terminada()) return false;
     return indice === 0 || ganado(idNivelTema(tema, NIVELES_TEMA[indice - 1].numero));
+  }
+
+  // Descripción de un nivel para jugarlo: { id, parte, nombre, texto, velocidad, siguiente() }
+  function nivelP1(indice) {
+    const n = PARTE1[indice];
+    return {
+      id: n.id,
+      parte: 'Parte 1 · Nivel ' + n.numero,
+      nombre: n.nombre,
+      texto: n.texto,
+      velocidad: n.velocidad,
+      ultimoDeParte: indice === PARTE1.length - 1,
+      siguiente: () => (indice + 1 < PARTE1.length ? nivelP1(indice + 1) : null)
+    };
+  }
+
+  function nivelTema(tema, indice) {
+    const n = NIVELES_TEMA[indice];
+    return {
+      id: idNivelTema(tema, n.numero),
+      parte: 'Parte 2 · ' + tema.nombre,
+      nombre: n.nombre,
+      velocidad: n.velocidad,
+      ultimoDeTema: indice === NIVELES_TEMA.length - 1,
+      siguiente: () => (indice + 1 < NIVELES_TEMA.length ? nivelTema(tema, indice + 1) : null)
+    };
+  }
+
+  function nivelLibre(tema) {
+    return { id: 'libre-' + tema.id, tema: tema.id, parte: 'Modo libre', nombre: tema.nombre, libre: true, siguiente: () => null };
+  }
+
+  // Guarda el resultado si es el mejor del alumno en ese nivel. Devuelve el mejor anterior.
+  function guardarResultado(id, resultado) {
+    const anterior = alumno.niveles[id] || null;
+    if (esMejor(resultado, anterior)) {
+      alumno.niveles[id] = resultado;
+      guardarAlumno();
+    }
+    return anterior;
+  }
+
+  function esMejor(nuevo, viejo) {
+    if (!viejo) return true;
+    if (nuevo.estrellas !== viejo.estrellas) return nuevo.estrellas > viejo.estrellas;
+    if (nuevo.ppm !== viejo.ppm) return nuevo.ppm > viejo.ppm;
+    return nuevo.precision > viejo.precision;
+  }
+
+  // ---------- Fechas ----------
+  function fechaLarga(fecha) {
+    return fecha.toLocaleDateString('es-AR', { day: 'numeric', month: 'long', year: 'numeric' }) +
+      ' · ' + fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hour12: false }) + ' h';
+  }
+
+  function fechaCorta(iso) {
+    return new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   }
 
   // ---------- Utilidades de DOM ----------
@@ -233,7 +297,7 @@
         nombre: nivel.nombre,
         abierto: abiertoP1(i),
         estrellasGanadas: estrellasDe(nivel.id),
-        alElegir: () => abrirNivel({ id: nivel.id, parte: 'Parte 1 · Nivel ' + nivel.numero, nombre: nivel.nombre, texto: nivel.texto, velocidad: nivel.velocidad }),
+        alElegir: () => abrirNivel(nivelP1(i)),
         contenido
       })));
     });
@@ -254,7 +318,7 @@
           nombre: nivel.nombre,
           abierto: abiertoTema(tema, i),
           estrellasGanadas: estrellasDe(idNivelTema(tema, nivel.numero)),
-          alElegir: () => abrirNivel({ id: idNivelTema(tema, nivel.numero), parte: 'Parte 2 · ' + tema.nombre, nombre: nivel.nombre, velocidad: nivel.velocidad })
+          alElegir: () => abrirNivel(nivelTema(tema, i))
         })));
       });
       lista.append(el('li', { class: 'tema' },
@@ -272,7 +336,7 @@
       lista.append(el('li', null, el('button', {
         type: 'button',
         class: 'libre',
-        onclick: () => abrirNivel({ id: 'libre-' + tema.id, parte: 'Modo libre', nombre: tema.nombre })
+        onclick: () => abrirNivel(nivelLibre(tema))
       },
         el('span', { class: 'libre__nombre', text: tema.nombre }),
         el('span', { class: 'libre__record', text: textoRecord })
@@ -481,8 +545,16 @@
     const minutos = ms / 60000;
     const ppm = Math.round((partida.texto.length / 5) / minutos);
     const precision = Math.floor((partida.correctas / partida.presionadas) * 100);
-    const estrellasGanadas = calcularEstrellas(ppm, precision, partida.nivel.velocidad);
-    mostrarResultado({ nivel: partida.nivel, ms, ppm, precision, estrellas: estrellasGanadas });
+    const fecha = new Date();
+    const resultado = {
+      estrellas: calcularEstrellas(ppm, precision, partida.nivel.velocidad),
+      ppm,
+      precision,
+      ms: Math.round(ms),
+      fecha: fecha.toISOString()
+    };
+    const anterior = guardarResultado(partida.nivel.id, resultado);
+    mostrarResultado(partida.nivel, resultado, anterior, fecha);
   }
 
   function salirDelNivel() {
@@ -491,32 +563,112 @@
     mostrarNiveles();
   }
 
-  // ---------- Resultado (provisorio: la pantalla completa va en la etapa 3) ----------
+  // ---------- Resultado ----------
   let ultimoNivel = null;
+  let nivelSiguiente = null;
 
-  function mostrarResultado(r) {
-    ultimoNivel = r.nivel;
-    const v = UMBRALES.velocidad[r.nivel.velocidad];
-    let mensaje;
-    if (r.estrellas === 3) {
-      mensaje = '¡Excelente! Llegaste a la velocidad objetivo.';
-    } else if (r.estrellas === 2) {
-      mensaje = '¡Muy bien, ganaste el nivel! Para 3 estrellas: ' + v.objetivo + ' PPM y ' + UMBRALES.precisionObjetivo + ' % de precisión.';
-    } else {
-      mensaje = 'Para ganar el nivel necesitás ' + v.minima + ' PPM y ' + UMBRALES.precisionMinima + ' % de precisión. ¡Probá de nuevo!';
+  function mensajeResultado(nivel, r) {
+    const v = UMBRALES.velocidad[nivel.velocidad];
+    if (r.estrellas === 1) {
+      const falta = [];
+      if (r.ppm < v.minima) falta.push(v.minima + ' PPM');
+      if (r.precision < UMBRALES.precisionMinima) falta.push(UMBRALES.precisionMinima + ' % de precisión');
+      return 'Para ganar el nivel necesitás ' + falta.join(' y ') + '. ¡Probá de nuevo!';
     }
+    let mensaje = r.estrellas === 3
+      ? '¡Excelente! Llegaste a la velocidad objetivo.'
+      : '¡Muy bien, ganaste el nivel! Para 3 estrellas: ' + v.objetivo + ' PPM y ' + UMBRALES.precisionObjetivo + ' % de precisión.';
+    if (nivel.ultimoDeParte) mensaje += ' Terminaste la Parte 1: ya podés jugar la Parte 2.';
+    if (nivel.ultimoDeTema) mensaje += ' Terminaste este tema.';
+    return mensaje;
+  }
 
-    $('resultado-parte').textContent = r.nivel.parte;
-    $('titulo-resultado').textContent = r.nivel.nombre;
+  function mostrarResultado(nivel, r, anterior, fecha) {
+    ultimoNivel = nivel;
+    nivelSiguiente = r.estrellas >= ESTRELLAS_PARA_AVANZAR ? nivel.siguiente() : null;
+    const mensaje = mensajeResultado(nivel, r);
+
+    $('resultado-alumno').textContent = alumno.nombre;
+    $('resultado-curso').textContent = alumno.curso;
+    $('resultado-fecha').textContent = fechaLarga(fecha);
+    $('resultado-parte').textContent = nivel.parte;
+    $('titulo-resultado').textContent = nivel.nombre;
     $('resultado-estrellas').replaceChildren(estrellas(r.estrellas));
     $('resultado-tiempo').textContent = formatoTiempo(r.ms);
     $('resultado-ppm').textContent = r.ppm + ' PPM';
     $('resultado-precision').textContent = r.precision + ' %';
     $('resultado-mensaje').textContent = mensaje;
+    $('resultado-record').textContent = anterior && esMejor(r, anterior) ? '¡Superaste tu mejor resultado en este nivel!' : '';
+    $('resultado-siguiente').hidden = !nivelSiguiente;
     mostrar('resultado');
     $('resultado-anuncio').textContent =
       'Nivel terminado. ' + (r.estrellas === 1 ? '1 estrella' : r.estrellas + ' estrellas') +
-      '. Velocidad: ' + r.ppm + ' palabras por minuto. Precisión: ' + r.precision + ' por ciento. ' + mensaje;
+      '. Tiempo: ' + formatoTiempo(r.ms) + '. Velocidad: ' + r.ppm + ' palabras por minuto. Precisión: ' +
+      r.precision + ' por ciento. ' + mensaje;
+  }
+
+  // ---------- Mi progreso ----------
+  function celdasResultado(r) {
+    if (!r) {
+      return [
+        el('td', null, el('span', { class: 'sin-jugar', text: 'Sin jugar' })),
+        el('td', { class: 'num', text: '—' }), el('td', { class: 'num', text: '—' }), el('td', { class: 'num', text: '—' })
+      ];
+    }
+    return [
+      el('td', null, estrellas(r.estrellas)),
+      el('td', { class: 'num', text: String(r.ppm) }),
+      el('td', { class: 'num', text: r.precision + ' %' }),
+      el('td', { class: 'num', text: fechaCorta(r.fecha) })
+    ];
+  }
+
+  function mostrarProgreso() {
+    terminarCronometro();
+    partida = null;
+
+    let total = 0;
+    let maximo = 0;
+    const p1 = $('tabla-p1');
+    p1.replaceChildren();
+    for (const n of PARTE1) {
+      total += estrellasDe(n.id);
+      maximo += 3;
+      p1.append(el('tr', null,
+        el('th', { scope: 'row', text: n.numero + '. ' + n.nombre }),
+        ...celdasResultado(alumno.niveles[n.id])));
+    }
+
+    const p2 = $('tabla-p2');
+    p2.replaceChildren();
+    for (const tema of TEMAS) {
+      NIVELES_TEMA.forEach((n, i) => {
+        const id = idNivelTema(tema, n.numero);
+        total += estrellasDe(id);
+        maximo += 3;
+        p2.append(el('tr', { class: i === 0 ? 'fila-tema' : null },
+          i === 0 ? el('th', { scope: 'rowgroup', rowspan: String(NIVELES_TEMA.length), class: 'celda-tema', text: tema.nombre }) : null,
+          el('th', { scope: 'row', text: n.nombre }),
+          ...celdasResultado(alumno.niveles[id])));
+      });
+    }
+
+    const libre = $('tabla-libre');
+    libre.replaceChildren();
+    for (const tema of TEMAS) {
+      const r = alumno.libre[tema.id];
+      libre.append(el('tr', null,
+        el('th', { scope: 'row', text: tema.nombre }),
+        r ? el('td', { class: 'num', text: r.ppm + ' PPM' }) : el('td', null, el('span', { class: 'sin-jugar', text: 'Sin jugar' })),
+        el('td', { class: 'num', text: r ? r.precision + ' %' : '—' }),
+        el('td', { class: 'num', text: r ? fechaCorta(r.fecha) : '—' })));
+    }
+
+    $('progreso-alumno').textContent = alumno.nombre;
+    $('progreso-curso').textContent = alumno.curso;
+    $('progreso-fecha').textContent = fechaLarga(new Date());
+    $('progreso-total').textContent = total + ' de ' + maximo;
+    mostrar('progreso');
   }
 
   // ---------- Teclado global ----------
@@ -528,7 +680,7 @@
         return;
       }
       if (partida) procesarTecla(evento);
-    } else if (vistaActual === 'resultado' && evento.key === 'Escape') {
+    } else if ((vistaActual === 'resultado' || vistaActual === 'progreso') && evento.key === 'Escape') {
       evento.preventDefault();
       mostrarNiveles();
     }
@@ -554,6 +706,9 @@
     $('cambiar-alumno').addEventListener('click', () => { terminarCronometro(); partida = null; cerrarSesion(); mostrarInicio(); });
     $('juego-salir').addEventListener('click', salirDelNivel);
     $('resultado-reintentar').addEventListener('click', () => abrirNivel(ultimoNivel));
+    $('resultado-siguiente').addEventListener('click', () => abrirNivel(nivelSiguiente));
+    $('ver-progreso').addEventListener('click', mostrarProgreso);
+    $('progreso-niveles').addEventListener('click', mostrarNiveles);
     $('resultado-niveles').addEventListener('click', mostrarNiveles);
     document.addEventListener('paste', (e) => { if (vistaActual === 'juego') e.preventDefault(); });
     dibujarTeclado();
