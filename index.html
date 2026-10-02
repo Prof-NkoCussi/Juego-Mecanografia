@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mecanografía · Taller de Procesamiento de Datos</title>
+  <meta name="description" content="Juego para aprender a escribir con todos los dedos.">
+  <link rel="stylesheet" href="assets/css/estilos.css">
+</head>
+<body>
+  <a class="saltar" href="#principal">Ir al contenido</a>
+
+  <!-- Aviso para celulares y tablets -->
+  <div id="aviso-teclado" class="aviso-teclado" hidden>
+    <div class="aviso-teclado__caja">
+      <h1>Este juego necesita un teclado</h1>
+      <p>Abrilo en una computadora con teclado físico.</p>
+    </div>
+  </div>
+
+  <div id="app">
+    <header id="barra" class="barra" hidden>
+      <div class="barra__marca">
+        <span class="barra__titulo">Mecanografía</span>
+      </div>
+      <div class="barra__alumno">
+        <span class="barra__nombre" id="barra-nombre"></span>
+        <span class="barra__curso" id="barra-curso"></span>
+        <button type="button" class="boton boton--chico boton--secundario" id="cambiar-alumno">Cambiar de alumno</button>
+      </div>
+    </header>
+
+    <main id="principal" tabindex="-1">
+
+      <!-- INICIO -->
+      <section id="vista-inicio" class="vista vista-inicio" aria-labelledby="titulo-inicio" hidden>
+        <div class="inicio">
+          <div class="inicio__portada">
+            <p class="inicio__taller">Taller de Procesamiento de Datos</p>
+            <h1 id="titulo-inicio" class="inicio__titulo" tabindex="-1">Mecanografía</h1>
+            <p class="inicio__bajada">Aprendé a escribir con todos los dedos.</p>
+            <div class="inicio__teclas" aria-hidden="true">
+              <span class="tecla">a</span><span class="tecla">s</span><span class="tecla">d</span><span class="tecla tecla--guia">f</span>
+              <span class="tecla tecla--hueco"></span>
+              <span class="tecla tecla--guia">j</span><span class="tecla">k</span><span class="tecla">l</span>
+            </div>
+          </div>
+
+          <form id="form-registro" class="registro" novalidate>
+            <h2 class="registro__titulo">¿Quién juega?</h2>
+
+            <div class="campo">
+              <label for="campo-nombre">Nombre y apellido</label>
+              <input id="campo-nombre" name="nombre" type="text" autocomplete="off" spellcheck="false" maxlength="60" aria-describedby="error-nombre">
+              <p class="campo__error" id="error-nombre" hidden>Escribí tu nombre y apellido.</p>
+            </div>
+
+            <div class="campo">
+              <label for="campo-curso">Curso</label>
+              <input id="campo-curso" name="curso" type="text" autocomplete="off" spellcheck="false" maxlength="20" placeholder="Ej.: 1.° 2.ª" aria-describedby="error-curso">
+              <p class="campo__error" id="error-curso" hidden>Escribí tu curso.</p>
+            </div>
+
+            <button type="submit" class="boton boton--grande">Empezar</button>
+
+            <p class="registro__aviso" id="aviso-guardado">
+              Tu progreso queda guardado <strong>solo en esta computadora</strong>.
+              Si jugás en otra, empezás de nuevo.
+            </p>
+          </form>
+        </div>
+      </section>
+
+      <!-- NIVELES -->
+      <section id="vista-niveles" class="vista vista-niveles" aria-labelledby="titulo-niveles" hidden>
+        <h1 id="titulo-niveles" class="vista__titulo" tabindex="-1">Niveles</h1>
+
+        <section class="parte" aria-labelledby="titulo-parte1">
+          <h2 id="titulo-parte1" class="parte__titulo"><span class="parte__etiqueta">Parte 1</span> Aprender las teclas</h2>
+          <p class="parte__ayuda">Ganá cada nivel con 2 estrellas para abrir el siguiente.</p>
+          <ol class="mapa-p1" id="mapa-p1"></ol>
+        </section>
+
+        <section class="parte" aria-labelledby="titulo-parte2">
+          <h2 id="titulo-parte2" class="parte__titulo"><span class="parte__etiqueta">Parte 2</span> Palabras por tema</h2>
+          <p class="parte__ayuda" id="ayuda-parte2"></p>
+          <ul class="mapa-p2" id="mapa-p2"></ul>
+        </section>
+
+        <section class="parte" aria-labelledby="titulo-libre">
+          <h2 id="titulo-libre" class="parte__titulo"><span class="parte__etiqueta parte__etiqueta--libre">Modo libre</span> 1 minuto</h2>
+          <p class="parte__ayuda">Elegí un tema y escribí todas las palabras que puedas en un minuto.</p>
+          <ul class="mapa-libre" id="mapa-libre"></ul>
+        </section>
+      </section>
+
+      <!-- JUEGO (etapa 2) -->
+      <section id="vista-juego" class="vista vista-juego" aria-labelledby="titulo-juego" hidden>
+        <p class="juego__parte" id="juego-parte"></p>
+        <h1 id="titulo-juego" class="vista__titulo" tabindex="-1"></h1>
+        <p class="juego__pendiente">Este nivel todavía está en construcción.</p>
+        <p><button type="button" class="boton" id="juego-volver">Volver a niveles</button></p>
+      </section>
+
+      <!-- RESULTADO (etapa 3) -->
+      <section id="vista-resultado" class="vista vista-resultado" aria-labelledby="titulo-resultado" hidden>
+        <h1 id="titulo-resultado" class="vista__titulo" tabindex="-1">Resultado</h1>
+      </section>
+
+      <!-- MI PROGRESO (etapa 3) -->
+      <section id="vista-progreso" class="vista vista-progreso" aria-labelledby="titulo-progreso" hidden>
+        <h1 id="titulo-progreso" class="vista__titulo" tabindex="-1">Mi progreso</h1>
+      </section>
+
+    </main>
+
+    <footer class="pie">
+      Prof. Nicolás A. Cussi · C.T.P. “Olga B. de Arko” · Ushuaia
+    </footer>
+  </div>
+
+  <script src="assets/js/niveles.js"></script>
+  <script src="assets/js/juego.js"></script>
+</body>
+</html>
