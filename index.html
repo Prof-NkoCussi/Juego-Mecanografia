@@ -94,17 +94,54 @@
         </section>
       </section>
 
-      <!-- JUEGO (etapa 2) -->
+      <!-- JUEGO -->
       <section id="vista-juego" class="vista vista-juego" aria-labelledby="titulo-juego" hidden>
-        <p class="juego__parte" id="juego-parte"></p>
-        <h1 id="titulo-juego" class="vista__titulo" tabindex="-1"></h1>
-        <p class="juego__pendiente">Este nivel todavía está en construcción.</p>
-        <p><button type="button" class="boton" id="juego-volver">Volver a niveles</button></p>
+        <div class="juego__cabecera">
+          <div class="juego__nivel">
+            <p class="juego__parte" id="juego-parte"></p>
+            <h1 id="titulo-juego" class="juego__titulo" tabindex="-1"></h1>
+          </div>
+          <dl class="juego__datos">
+            <div class="dato"><dt>Tiempo</dt><dd id="dato-tiempo">0:00</dd></div>
+            <div class="dato"><dt>Errores</dt><dd id="dato-errores">0</dd></div>
+          </dl>
+          <button type="button" class="boton boton--chico boton--secundario" id="juego-salir">Salir <kbd class="atajo">Esc</kbd></button>
+        </div>
+
+        <p class="juego__pendiente" id="juego-pendiente" hidden>Este nivel todavía está en construcción.</p>
+
+        <div id="juego-area" class="juego__area">
+          <p class="juego__consigna" id="juego-consigna">Empezá cuando quieras: el tiempo arranca con la primera tecla.</p>
+          <div id="texto" class="texto" tabindex="0" role="group" aria-label="Texto para escribir"></div>
+          <p class="aviso-mayus" id="aviso-mayus" role="alert" hidden>Tenés activado Bloq Mayús. Desactivalo: todo se escribe en minúscula.</p>
+
+          <div class="teclado-zona">
+            <svg class="mano mano--izq" id="mano-izq" viewBox="0 0 160 150" aria-hidden="true"></svg>
+            <div class="teclado" id="teclado" aria-hidden="true"></div>
+            <svg class="mano mano--der" id="mano-der" viewBox="0 0 160 150" aria-hidden="true"></svg>
+          </div>
+          <p class="dedo-indicado" id="dedo-indicado" aria-live="polite"></p>
+        </div>
       </section>
 
-      <!-- RESULTADO (etapa 3) -->
+      <!-- RESULTADO (provisorio: se completa en la etapa 3) -->
       <section id="vista-resultado" class="vista vista-resultado" aria-labelledby="titulo-resultado" hidden>
-        <h1 id="titulo-resultado" class="vista__titulo" tabindex="-1">Resultado</h1>
+        <div class="resultado">
+          <p class="juego__parte" id="resultado-parte"></p>
+          <h1 id="titulo-resultado" class="vista__titulo" tabindex="-1"></h1>
+          <div id="resultado-estrellas" class="resultado__estrellas"></div>
+          <dl class="resultado__datos">
+            <div class="dato"><dt>Tiempo</dt><dd id="resultado-tiempo"></dd></div>
+            <div class="dato"><dt>Velocidad</dt><dd id="resultado-ppm"></dd></div>
+            <div class="dato"><dt>Precisión</dt><dd id="resultado-precision"></dd></div>
+          </dl>
+          <p class="resultado__mensaje" id="resultado-mensaje"></p>
+          <p class="sr-solo" id="resultado-anuncio" role="status"></p>
+          <div class="resultado__botones">
+            <button type="button" class="boton" id="resultado-reintentar">Reintentar</button>
+            <button type="button" class="boton boton--secundario" id="resultado-niveles">Niveles</button>
+          </div>
+        </div>
       </section>
 
       <!-- MI PROGRESO (etapa 3) -->

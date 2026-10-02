@@ -16,9 +16,14 @@ const UMBRALES = {
 // Estrellas que hacen falta para abrir el nivel siguiente.
 const ESTRELLAS_PARA_AVANZAR = 2;
 
-// Parte 1 · Aprender las teclas. Los textos se agregan en la etapa 4.
+// Parte 1 · Aprender las teclas. Primero repeticiones de teclas, después palabras reales.
+// Los textos de los niveles 2 a 6 se agregan en la etapa 4.
 const PARTE1 = [
-  { id: 'p1-1', numero: 1, nombre: 'Fila guía',        teclas: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'], velocidad: 'p1Inicial' },
+  {
+    id: 'p1-1', numero: 1, nombre: 'Fila guía', teclas: ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'], velocidad: 'p1Inicial',
+    texto: 'fff jjj fff jjj ddd kkk ddd kkk sss lll sss lll aaa aaa fj dk sl fj dk sl ggg hhh fg jh fg jh ' +
+           'asdf jkl asdf jkl sala gala hada falda salsa gasa faja alfalfa'
+  },
   { id: 'p1-2', numero: 2, nombre: 'Fila superior',    teclas: ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'], velocidad: 'p1Inicial' },
   { id: 'p1-3', numero: 3, nombre: 'Fila inferior',    teclas: ['z', 'x', 'c', 'v', 'b', 'n', 'm'], velocidad: 'p1Inicial' },
   { id: 'p1-4', numero: 4, nombre: 'Todas las letras', descripcion: 'Palabras con cualquier letra', velocidad: 'p1Final' },
@@ -43,3 +48,16 @@ const TEMAS = [
 
 // Modo libre: palabras al azar del tema hasta que se cumple el tiempo.
 const MODO_LIBRE = { segundos: 60 };
+
+// Teclado en pantalla: qué dedo va en cada tecla.
+const DEDOS = [
+  { id: 'mi', nombre: 'meñique izquierdo', color: 'menique', teclas: '1qaz' },
+  { id: 'ai', nombre: 'anular izquierdo',  color: 'anular',  teclas: '2wsx' },
+  { id: 'ci', nombre: 'mayor izquierdo',   color: 'mayor',   teclas: '3edc' },
+  { id: 'ii', nombre: 'índice izquierdo',  color: 'indice',  teclas: '45rtfgvb' },
+  { id: 'pu', nombre: 'pulgar',            color: 'pulgar',  teclas: ' ' },
+  { id: 'id', nombre: 'índice derecho',    color: 'indice',  teclas: '67yuhjnm' },
+  { id: 'cd', nombre: 'mayor derecho',     color: 'mayor',   teclas: '8ik,' },
+  { id: 'ad', nombre: 'anular derecho',    color: 'anular',  teclas: '9ol.' },
+  { id: 'md', nombre: 'meñique derecho',   color: 'menique', teclas: '0p' }
+];

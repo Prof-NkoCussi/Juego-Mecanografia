@@ -233,7 +233,7 @@
         nombre: nivel.nombre,
         abierto: abiertoP1(i),
         estrellasGanadas: estrellasDe(nivel.id),
-        alElegir: () => abrirNivel('Parte 1 · Nivel ' + nivel.numero, nivel.nombre),
+        alElegir: () => abrirNivel({ id: nivel.id, parte: 'Parte 1 · Nivel ' + nivel.numero, nombre: nivel.nombre, texto: nivel.texto, velocidad: nivel.velocidad }),
         contenido
       })));
     });
@@ -254,7 +254,7 @@
           nombre: nivel.nombre,
           abierto: abiertoTema(tema, i),
           estrellasGanadas: estrellasDe(idNivelTema(tema, nivel.numero)),
-          alElegir: () => abrirNivel('Parte 2 · ' + tema.nombre, nivel.nombre)
+          alElegir: () => abrirNivel({ id: idNivelTema(tema, nivel.numero), parte: 'Parte 2 · ' + tema.nombre, nombre: nivel.nombre, velocidad: nivel.velocidad })
         })));
       });
       lista.append(el('li', { class: 'tema' },
@@ -272,7 +272,7 @@
       lista.append(el('li', null, el('button', {
         type: 'button',
         class: 'libre',
-        onclick: () => abrirNivel('Modo libre', tema.nombre)
+        onclick: () => abrirNivel({ id: 'libre-' + tema.id, parte: 'Modo libre', nombre: tema.nombre })
       },
         el('span', { class: 'libre__nombre', text: tema.nombre }),
         el('span', { class: 'libre__record', text: textoRecord })
@@ -287,16 +287,248 @@
     mostrar('niveles');
   }
 
-  // ---------- Juego (provisorio hasta la etapa 2) ----------
-  function abrirNivel(parte, nombre) {
-    $('juego-parte').textContent = parte;
-    $('titulo-juego').textContent = nombre;
+  // ---------- Medición y estrellas ----------
+  function calcularEstrellas(ppm, precision, claveVelocidad) {
+    const v = UMBRALES.velocidad[claveVelocidad];
+    if (ppm >= v.objetivo && precision >= UMBRALES.precisionObjetivo) return 3;
+    if (ppm >= v.minima && precision >= UMBRALES.precisionMinima) return 2;
+    return 1;
+  }
+
+  function formatoTiempo(ms) {
+    const total = Math.floor(ms / 1000);
+    const min = Math.floor(total / 60);
+    const seg = total % 60;
+    return min + ':' + String(seg).padStart(2, '0');
+  }
+
+  // ---------- Teclado y manos en pantalla ----------
+  const FILAS_TECLADO = ['1234567890', 'qwertyuiop', 'asdfghjkl', 'zxcvbnm,.'];
+  const DEDO_DE_TECLA = {};
+  for (const dedo of DEDOS) for (const t of dedo.teclas) DEDO_DE_TECLA[t] = dedo;
+  const teclasDibujadas = {};
+
+  function dibujarTeclado() {
+    const teclado = $('teclado');
+    for (const fila of FILAS_TECLADO) {
+      const filaEl = el('div', { class: 'teclado__fila' });
+      for (const t of fila) {
+        const tecla = el('span', {
+          class: 'tecla-t dedo--' + DEDO_DE_TECLA[t].color + (t === 'f' || t === 'j' ? ' tecla-t--guia' : ''),
+          text: t
+        });
+        teclasDibujadas[t] = tecla;
+        filaEl.append(tecla);
+      }
+      teclado.append(filaEl);
+    }
+    const espacio = el('span', { class: 'tecla-t tecla-t--espacio dedo--pulgar', text: 'espacio' });
+    teclasDibujadas[' '] = espacio;
+    teclado.append(el('div', { class: 'teclado__fila' }, espacio));
+
+    // Mano izquierda; la derecha es la misma dada vuelta.
+    const forma = (lado) => {
+      const d = lado === 'izq' ? ['mi', 'ai', 'ci', 'ii'] : ['md', 'ad', 'cd', 'id'];
+      const color = (id) => DEDOS.find((x) => x.id === id).color;
+      const dedo = (id, x, y, w, h, extra) =>
+        '<rect class="dedo dedo--' + color(id) + '" data-dedo="' + id + '" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" rx="' + w / 2 + '"' + (extra || '') + '/>';
+      return '<g' + (lado === 'der' ? ' transform="translate(160 0) scale(-1 1)"' : '') + '>' +
+        '<rect class="palma" x="14" y="80" width="104" height="64" rx="24"/>' +
+        dedo(d[0], 16, 46, 22, 50) +
+        dedo(d[1], 41, 24, 24, 72) +
+        dedo(d[2], 68, 12, 24, 84) +
+        dedo(d[3], 95, 26, 24, 70) +
+        '<rect class="dedo dedo--pulgar" data-dedo="pu" x="107" y="82" width="22" height="46" rx="11" transform="rotate(40 118 128)"/>' +
+        '</g>';
+    };
+    $('mano-izq').innerHTML = forma('izq');
+    $('mano-der').innerHTML = forma('der');
+  }
+
+  function indicarTecla(caracter) {
+    for (const t of Object.values(teclasDibujadas)) t.classList.remove('tecla-t--siguiente');
+    document.querySelectorAll('.mano .dedo--activo').forEach((d) => d.classList.remove('dedo--activo'));
+    const indicado = $('dedo-indicado');
+    if (caracter === null) { indicado.replaceChildren(); return; }
+
+    const dedo = DEDO_DE_TECLA[caracter];
+    if (teclasDibujadas[caracter]) teclasDibujadas[caracter].classList.add('tecla-t--siguiente');
+    document.querySelectorAll('.mano [data-dedo="' + dedo.id + '"]').forEach((d) => d.classList.add('dedo--activo'));
+    indicado.replaceChildren(
+      'Tecla ', el('strong', { text: caracter === ' ' ? 'espacio' : caracter }),
+      ' con el dedo ', el('span', { class: 'chip dedo--' + dedo.color, text: dedo.nombre })
+    );
+  }
+
+  // ---------- Partida ----------
+  // nivel: { id, parte, nombre, texto, velocidad }
+  let partida = null;
+
+  function abrirNivel(nivel) {
+    terminarCronometro();
+    $('juego-parte').textContent = nivel.parte;
+    $('titulo-juego').textContent = nivel.nombre;
+
+    const hayTexto = Boolean(nivel.texto);
+    $('juego-pendiente').hidden = hayTexto;
+    $('juego-area').hidden = !hayTexto;
+    $('dato-tiempo').textContent = '0:00';
+    $('dato-errores').textContent = '0';
+    $('aviso-mayus').hidden = true;
+
+    if (!hayTexto) {
+      partida = null;
+      mostrar('juego');
+      return;
+    }
+
+    partida = {
+      nivel,
+      texto: nivel.texto,
+      pos: 0,
+      presionadas: 0,
+      correctas: 0,
+      errores: 0,
+      falloEnPos: false,
+      inicio: null,
+      intervalo: null,
+      letras: []
+    };
+    dibujarTexto();
+    marcarActual();
     mostrar('juego');
+    $('texto').focus();
+  }
+
+  function dibujarTexto() {
+    const contenedor = $('texto');
+    contenedor.replaceChildren();
+    let palabra = null;
+    for (const caracter of partida.texto) {
+      const letra = el('span', { class: 'letra' + (caracter === ' ' ? ' letra--espacio' : ''), text: caracter });
+      partida.letras.push(letra);
+      if (caracter === ' ') {
+        palabra = null;
+        contenedor.append(letra);
+      } else {
+        if (!palabra) {
+          palabra = el('span', { class: 'palabra' });
+          contenedor.append(palabra);
+        }
+        palabra.append(letra);
+      }
+    }
+  }
+
+  function marcarActual() {
+    const letra = partida.letras[partida.pos];
+    if (letra) letra.classList.add('letra--actual');
+    indicarTecla(partida.pos < partida.texto.length ? partida.texto[partida.pos] : null);
+  }
+
+  function arrancarCronometro() {
+    partida.inicio = performance.now();
+    partida.intervalo = setInterval(() => {
+      $('dato-tiempo').textContent = formatoTiempo(performance.now() - partida.inicio);
+    }, 250);
+  }
+
+  function terminarCronometro() {
+    if (partida && partida.intervalo) {
+      clearInterval(partida.intervalo);
+      partida.intervalo = null;
+    }
+  }
+
+  function procesarTecla(evento) {
+    if (evento.ctrlKey || evento.metaKey || evento.altKey) return;
+    if (evento.key.length !== 1) return; // Shift, Tab, teclas muertas de tilde, etc.
+    evento.preventDefault();
+    if (evento.repeat) return; // tecla mantenida apretada: no cuenta
+
+    $('aviso-mayus').hidden = !(evento.getModifierState && evento.getModifierState('CapsLock'));
+
+    if (partida.inicio === null) {
+      arrancarCronometro();
+      $('juego-consigna').textContent = 'Si te equivocás, tocá la tecla correcta para seguir.';
+    }
+
+    partida.presionadas++;
+    const esperado = partida.texto[partida.pos];
+    const letra = partida.letras[partida.pos];
+
+    if (evento.key.toLowerCase() === esperado) {
+      partida.correctas++;
+      letra.classList.remove('letra--actual', 'letra--fallo');
+      letra.classList.add(partida.falloEnPos ? 'letra--corregida' : 'letra--hecha');
+      partida.falloEnPos = false;
+      partida.pos++;
+      if (partida.pos === partida.texto.length) terminarPartida();
+      else marcarActual();
+    } else {
+      partida.errores++;
+      partida.falloEnPos = true;
+      letra.classList.add('letra--fallo');
+      $('dato-errores').textContent = String(partida.errores);
+    }
+  }
+
+  function terminarPartida() {
+    const ms = performance.now() - partida.inicio;
+    terminarCronometro();
+    indicarTecla(null);
+
+    const minutos = ms / 60000;
+    const ppm = Math.round((partida.texto.length / 5) / minutos);
+    const precision = Math.floor((partida.correctas / partida.presionadas) * 100);
+    const estrellasGanadas = calcularEstrellas(ppm, precision, partida.nivel.velocidad);
+    mostrarResultado({ nivel: partida.nivel, ms, ppm, precision, estrellas: estrellasGanadas });
+  }
+
+  function salirDelNivel() {
+    terminarCronometro();
+    partida = null;
+    mostrarNiveles();
+  }
+
+  // ---------- Resultado (provisorio: la pantalla completa va en la etapa 3) ----------
+  let ultimoNivel = null;
+
+  function mostrarResultado(r) {
+    ultimoNivel = r.nivel;
+    const v = UMBRALES.velocidad[r.nivel.velocidad];
+    let mensaje;
+    if (r.estrellas === 3) {
+      mensaje = '¡Excelente! Llegaste a la velocidad objetivo.';
+    } else if (r.estrellas === 2) {
+      mensaje = '¡Muy bien, ganaste el nivel! Para 3 estrellas: ' + v.objetivo + ' PPM y ' + UMBRALES.precisionObjetivo + ' % de precisión.';
+    } else {
+      mensaje = 'Para ganar el nivel necesitás ' + v.minima + ' PPM y ' + UMBRALES.precisionMinima + ' % de precisión. ¡Probá de nuevo!';
+    }
+
+    $('resultado-parte').textContent = r.nivel.parte;
+    $('titulo-resultado').textContent = r.nivel.nombre;
+    $('resultado-estrellas').replaceChildren(estrellas(r.estrellas));
+    $('resultado-tiempo').textContent = formatoTiempo(r.ms);
+    $('resultado-ppm').textContent = r.ppm + ' PPM';
+    $('resultado-precision').textContent = r.precision + ' %';
+    $('resultado-mensaje').textContent = mensaje;
+    mostrar('resultado');
+    $('resultado-anuncio').textContent =
+      'Nivel terminado. ' + (r.estrellas === 1 ? '1 estrella' : r.estrellas + ' estrellas') +
+      '. Velocidad: ' + r.ppm + ' palabras por minuto. Precisión: ' + r.precision + ' por ciento. ' + mensaje;
   }
 
   // ---------- Teclado global ----------
   function alPresionarTecla(evento) {
-    if (evento.key === 'Escape' && vistaActual === 'juego') {
+    if (vistaActual === 'juego') {
+      if (evento.key === 'Escape') {
+        evento.preventDefault();
+        salirDelNivel();
+        return;
+      }
+      if (partida) procesarTecla(evento);
+    } else if (vistaActual === 'resultado' && evento.key === 'Escape') {
       evento.preventDefault();
       mostrarNiveles();
     }
@@ -319,8 +551,12 @@
     }
 
     $('form-registro').addEventListener('submit', alEnviarRegistro);
-    $('cambiar-alumno').addEventListener('click', () => { cerrarSesion(); mostrarInicio(); });
-    $('juego-volver').addEventListener('click', mostrarNiveles);
+    $('cambiar-alumno').addEventListener('click', () => { terminarCronometro(); partida = null; cerrarSesion(); mostrarInicio(); });
+    $('juego-salir').addEventListener('click', salirDelNivel);
+    $('resultado-reintentar').addEventListener('click', () => abrirNivel(ultimoNivel));
+    $('resultado-niveles').addEventListener('click', mostrarNiveles);
+    document.addEventListener('paste', (e) => { if (vistaActual === 'juego') e.preventDefault(); });
+    dibujarTeclado();
     document.addEventListener('keydown', alPresionarTecla);
 
     if (retomarSesion()) mostrarNiveles();
